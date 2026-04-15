@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVG to PNG Converter</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0e27;
+            --bg-secondary: #141b3d;
+            --bg-tertiary: #1e2852;
+            --text-primary: #e8eaf6;
+            --text-secondary: #9fa8da;
+            --text-muted: #5c6bc0;
+            --accent: #00d9ff;
+            --accent-glow: rgba(0, 217, 255, 0.3);
+            --success: #00e676;
+            --border: rgba(92, 107, 192, 0.3);
+            --shadow: rgba(0, 0, 0, 0.4);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: 
+                radial-gradient(circle at 20% 30%, rgba(0, 217, 255, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(92, 107, 192, 0.08) 0%, transparent 50%);
+            animation: backgroundShift 20s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        @keyframes backgroundShift {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(-2%, -2%); }
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 60px 40px;
+            position: relative;
+            z-index: 1;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            font-weight: 300;
+            letter-spacing: 0.02em;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            animation: fadeInUp 0.8s ease-out 0.2s backwards;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .panel {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 32px;
+            box-shadow: 0 8px 32px var(--shadow);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .panel:hover::before {
+            opacity: 1;
+        }
+
+        .panel:hover {
+            border-color: rgba(0, 217, 255, 0.5);
+            box-shadow: 0 12px 48px var(--shadow), 0 0 0 1px var(--accent-glow);
+        }
+
+        .panel-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .panel-title::before {
+            content: '';
+            width: 4px;
+            height: 24px;
+            background: var(--accent);
+            border-radius: 2px;
+        }
+
+        .upload-area {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 48px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: var(--bg-tertiary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-area::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, transparent 0%, var(--accent-glow) 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .upload-area:hover::before {
+            opacity: 0.3;
+        }
+
+        .upload-area:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        .upload-area.dragover {
+            border-color: var(--accent);
+            background: rgba(0, 217, 255, 0.1);
+        }
+
+        .upload-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 20px;
+            opacity: 0.8;
+        }
+
+        .upload-text {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .upload-hint {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .code-input {
+            width: 100%;
+            min-height: 200px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            resize: vertical;
+            transition: all 0.3s ease;
+        }
+
+        .code-input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .code-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 14px 32px;
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Outfit', sans-serif;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent) 0%, #00b8d4 100%);
+            color: var(--bg-primary);
+            box-shadow: 0 4px 16px var(--accent-glow);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px var(--accent-glow);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-secondary);
+            border-color: var(--accent);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .actions {
+            display: flex;
+            gap: 16px;
+            margin-top: 24px;
+            flex-wrap: wrap;
+        }
+
+        .preview-area {
+            margin-top: 24px;
+            padding: 24px;
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            text-align: center;
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--border);
+        }
+
+        .preview-area img {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px var(--shadow);
+        }
+
+        .preview-placeholder {
+            color: var(--text-muted);
+            font-size: 1rem;
+        }
+
+        .size-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-top: 24px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .input-group label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .input-group input {
+            padding: 12px 16px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.95rem;
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .status {
+            margin-top: 16px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .status.success {
+            display: block;
+            background: rgba(0, 230, 118, 0.1);
+            border: 1px solid var(--success);
+            color: var(--success);
+        }
+
+        .status.error {
+            display: block;
+            background: rgba(255, 82, 82, 0.1);
+            border: 1px solid #ff5252;
+            color: #ff5252;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+        }
+
+        .tab.active {
+            background: var(--accent);
+            color: var(--bg-primary);
+            border-color: var(--accent);
+        }
+
+        .tab:hover:not(.active) {
+            border-color: var(--accent);
+            color: var(--text-primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 60px;
+            padding-top: 40px;
+            border-top: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            animation: fadeInUp 0.8s ease-out 0.4s backwards;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 40px 20px;
+            }
+
+            h1 {
+                font-size: 2.5rem;
+            }
+
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 24px;
+            }
+
+            .panel {
+                padding: 24px;
+            }
+
+            .size-inputs {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .icon {
+            width: 20px;
+            height: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>SVG to PNG</h1>
+            <p class="subtitle">Convert your SVG files to high-quality PNG images instantly</p>
+        </header>
+
+        <div class="main-content">
+            <div class="panel">
+                <h2 class="panel-title">Input</h2>
+                
+                <div class="tabs">
+                    <div class="tab active" data-tab="upload">Upload File</div>
+                    <div class="tab" data-tab="paste">Paste Code</div>
+                </div>
+
+                <div class="tab-content active" id="upload-tab">
+                    <div class="upload-area" id="dropZone">
+                        <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                        <p class="upload-text">Drop your SVG file here</p>
+                        <p class="upload-hint">or click to browse</p>
+                    </div>
+                    <input type="file" id="fileInput" accept=".svg" style="display: none;">
+                </div>
+
+                <div class="tab-content" id="paste-tab">
+                    <textarea class="code-input" id="svgCode" placeholder="Paste your SVG code here..."></textarea>
+                </div>
+
+                <div class="size-inputs">
+                    <div class="input-group">
+                        <label for="width">Width (px)</label>
+                        <input type="number" id="width" value="800" min="1" max="10000">
+                    </div>
+                    <div class="input-group">
+                        <label for="height">Height (px)</label>
+                        <input type="number" id="height" value="600" min="1" max="10000">
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <button class="btn btn-primary" id="convertBtn">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        Convert to PNG
+                    </button>
+                    <button class="btn btn-secondary" id="clearBtn">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 6h18"/>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+                            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                        </svg>
+                        Clear
+                    </button>
+                </div>
+
+                <div class="status" id="status"></div>
+            </div>
+
+            <div class="panel">
+                <h2 class="panel-title">Preview</h2>
+                <div class="preview-area" id="previewArea">
+                    <p class="preview-placeholder">Your converted PNG will appear here</p>
+                </div>
+                <div class="actions">
+                    <button class="btn btn-primary" id="downloadBtn" disabled>
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        Download PNG
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Built with Rust & Modern Web Technologies</p>
+        </footer>
+    </div>
+
+    <script>
+        let currentSvg = null;
+        let convertedPng = null;
+
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const svgCode = document.getElementById('svgCode');
+        const convertBtn = document.getElementById('convertBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const previewArea = document.getElementById('previewArea');
+        const status = document.getElementById('status');
+        const widthInput = document.getElementById('width');
+        const heightInput = document.getElementById('height');
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                tabContents.forEach(c => c.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab + '-tab').classList.add('active');
+            });
+        });
+
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type === 'image/svg+xml') {
+                handleFile(file);
+            } else {
+                showStatus('Please upload a valid SVG file', 'error');
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        });
+
+        function handleFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                currentSvg = e.target.result;
+                svgCode.value = currentSvg;
+                showStatus('SVG file loaded successfully', 'success');
+            };
+            reader.readAsText(file);
+        }
+
+        convertBtn.addEventListener('click', convertToPng);
+
+        function convertToPng() {
+            let svgContent = currentSvg;
+            
+            if (!svgContent && svgCode.value.trim()) {
+                svgContent = svgCode.value.trim();
+            }
+
+            if (!svgContent) {
+                showStatus('Please upload an SVG file or paste SVG code', 'error');
+                return;
+            }
+
+            const width = parseInt(widthInput.value) || 800;
+            const height = parseInt(heightInput.value) || 600;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+
+            const img = new Image();
+            const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+
+            img.onload = () => {
+                ctx.drawImage(img, 0, 0, width, height);
+                URL.revokeObjectURL(url);
+
+                convertedPng = canvas.toDataURL('image/png');
+                
+                previewArea.innerHTML = `<img src="${convertedPng}" alt="Converted PNG">`;
+                downloadBtn.disabled = false;
+                showStatus('Conversion successful!', 'success');
+            };
+
+            img.onerror = () => {
+                URL.revokeObjectURL(url);
+                showStatus('Failed to convert SVG. Please check your SVG code.', 'error');
+            };
+
+            img.src = url;
+        }
+
+        downloadBtn.addEventListener('click', () => {
+            if (convertedPng) {
+                const link = document.createElement('a');
+                link.download = 'converted-image.png';
+                link.href = convertedPng;
+                link.click();
+            }
+        });
+
+        clearBtn.addEventListener('click', () => {
+            currentSvg = null;
+            convertedPng = null;
+            svgCode.value = '';
+            fileInput.value = '';
+            previewArea.innerHTML = '<p class="preview-placeholder">Your converted PNG will appear here</p>';
+            downloadBtn.disabled = true;
+            status.style.display = 'none';
+        });
+
+        function showStatus(message, type) {
+            status.textContent = message;
+            status.className = 'status ' + type;
+            setTimeout(() => {
+                status.style.display = 'none';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
